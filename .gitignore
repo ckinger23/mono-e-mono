@@ -1,0 +1,59 @@
+# Environment variables (IMPORTANT - may contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Nuxt / Node.js
+web/node_modules/
+web/.nuxt/
+web/.output/
+web/dist/
+web/.nitro/
+web/.cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Claude Code
+.claude/
+
+# Test coverage
+coverage/
+*.cover
+*.coverage
+
+# Temporary files
+tmp/
+temp/
+*.tmp

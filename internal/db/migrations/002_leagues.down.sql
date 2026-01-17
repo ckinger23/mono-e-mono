@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS league_members;
+DROP TABLE IF EXISTS leagues;
