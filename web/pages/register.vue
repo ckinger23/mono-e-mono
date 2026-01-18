@@ -7,7 +7,13 @@
 
     <div class="card">
       <div class="card-body">
-        <form @submit.prevent="handleSubmit" class="space-y-6">
+        <CommonAlert
+          v-if="success"
+          type="success"
+          message="Account created! Please check your email to confirm your account."
+        />
+
+        <form v-if="!success" @submit.prevent="handleSubmit" class="space-y-6">
           <CommonAlert
             v-if="error"
             type="error"
@@ -75,7 +81,7 @@
           </button>
         </form>
 
-        <div class="mt-6">
+        <div v-if="!success" class="mt-6">
           <div class="relative">
             <div class="absolute inset-0 flex items-center">
               <div class="w-full border-t border-gray-300" />
@@ -86,18 +92,22 @@
           </div>
 
           <div class="mt-6 grid grid-cols-2 gap-3">
-            <a
-              :href="`${config.public.apiBase}/api/auth/google`"
+            <button
+              type="button"
+              @click="handleGoogleSignIn"
+              :disabled="loading"
               class="btn-secondary w-full"
             >
               Google
-            </a>
-            <a
-              :href="`${config.public.apiBase}/api/auth/github`"
+            </button>
+            <button
+              type="button"
+              @click="handleGithubSignIn"
+              :disabled="loading"
               class="btn-secondary w-full"
             >
               GitHub
-            </a>
+            </button>
           </div>
         </div>
 
@@ -115,11 +125,10 @@
 <script setup lang="ts">
 definePageMeta({
   layout: 'auth',
-  middleware: 'auth',
 })
 
-const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const user = useSupabaseUser()
 
 const displayName = ref('')
 const email = ref('')
@@ -127,6 +136,14 @@ const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref('')
+const success = ref(false)
+
+// Redirect if already logged in
+watch(user, (newUser) => {
+  if (newUser) {
+    navigateTo('/dashboard')
+  }
+}, { immediate: true })
 
 const handleSubmit = async () => {
   if (password.value !== confirmPassword.value) {
@@ -138,10 +155,40 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    await authStore.register(email.value, password.value, displayName.value)
-    navigateTo('/dashboard')
+    const result = await authStore.register(email.value, password.value, displayName.value)
+    if (result) {
+      success.value = true
+    } else {
+      error.value = authStore.error || 'Registration failed. Please try again.'
+    }
   } catch (err: any) {
-    error.value = err.data?.message || 'Registration failed. Please try again.'
+    error.value = err.message || 'Registration failed. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleGoogleSignIn = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    await authStore.signInWithGoogle()
+  } catch (err: any) {
+    error.value = err.message || 'Google sign in failed.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleGithubSignIn = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    await authStore.signInWithGithub()
+  } catch (err: any) {
+    error.value = err.message || 'GitHub sign in failed.'
   } finally {
     loading.value = false
   }

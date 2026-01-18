@@ -63,7 +63,17 @@
 </template>
 
 <script setup lang="ts">
-import type { TeamInfo, Player } from '~/types'
+interface TeamInfo {
+  abbrev: string
+  name: string
+}
+
+interface Player {
+  id: string
+  name: string
+  position: string
+  team: string
+}
 
 const props = defineProps<{
   team: TeamInfo
@@ -72,7 +82,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  pick: [playerId: string, position: string]
+  pick: [playerId: string, playerName: string, position: string]
 }>()
 
 const selectedPosition = ref<string | null>(null)
@@ -91,7 +101,7 @@ const filteredPlayers = computed(() => {
 
 const handleSelect = (player: Player) => {
   if (props.neededPositions.includes(player.position)) {
-    emit('pick', player.id, player.position)
+    emit('pick', player.id, player.name, player.position)
   }
 }
 </script>

@@ -5,12 +5,23 @@ export default defineNuxtConfig({
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
+    '@nuxtjs/supabase',
   ],
 
+  supabase: {
+    redirectOptions: {
+      login: '/login',
+      callback: '/auth/callback',
+      exclude: ['/', '/register'],
+    },
+  },
+
   runtimeConfig: {
+    // Server-side only
+    sleeperApiBase: 'https://api.sleeper.app/v1',
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080',
-      wsBase: process.env.NUXT_PUBLIC_WS_BASE || 'ws://localhost:8080',
+      // Client-side
+      baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000',
     },
   },
 

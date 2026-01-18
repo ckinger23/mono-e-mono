@@ -23,7 +23,7 @@
       <!-- Team Draw -->
       <DraftTeamDraw
         v-if="draftStore.currentTeam && !draftStore.isComplete"
-        :team="draftStore.currentTeam.team"
+        :team="draftStore.currentTeam"
         :available-players="draftStore.availablePlayers"
         :needed-positions="draftStore.neededPositions"
         @pick="handlePick"
@@ -38,7 +38,7 @@
       <DraftComplete
         v-if="draftStore.isComplete"
         :roster="draftStore.roster"
-        :total-points="draftStore.totalPoints || 0"
+        :total-points="0"
         @close="$emit('complete')"
       />
     </div>
@@ -54,11 +54,11 @@
 const draftStore = useDraftStore()
 
 const emit = defineEmits<{
-  pick: [playerId: string, position: string]
+  pick: [playerId: string, playerName: string, position: string]
   complete: []
 }>()
 
-const handlePick = (playerId: string, position: string) => {
-  emit('pick', playerId, position)
+const handlePick = (playerId: string, playerName: string, position: string) => {
+  emit('pick', playerId, playerName, position)
 }
 </script>

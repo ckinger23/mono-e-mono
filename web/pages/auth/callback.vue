@@ -11,24 +11,22 @@ definePageMeta({
   layout: false,
 })
 
-const route = useRoute()
-const authStore = useAuthStore()
+const user = useSupabaseUser()
 
-onMounted(async () => {
-  const accessToken = route.query.access_token as string
-  const refreshToken = route.query.refresh_token as string
-
-  if (accessToken && refreshToken) {
-    authStore.tokens = {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      expires_in: 86400, // 24 hours
-    }
-    authStore.saveTokens()
-    await authStore.fetchUser()
+// The @nuxtjs/supabase module handles the OAuth callback automatically
+// We just need to wait for the user to be set and then redirect
+watch(user, (newUser) => {
+  if (newUser) {
     navigateTo('/dashboard')
-  } else {
-    navigateTo('/login')
   }
+}, { immediate: true })
+
+// Fallback: if no user after 5 seconds, redirect to login
+onMounted(() => {
+  setTimeout(() => {
+    if (!user.value) {
+      navigateTo('/login')
+    }
+  }, 5000)
 })
 </script>

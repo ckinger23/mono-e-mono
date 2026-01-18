@@ -2,17 +2,9 @@
 .env
 .env.local
 .env.*.local
-
-# Go
-bin/
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-vendor/
+web/.env
+web/.env.local
+web/.env.*.local
 
 # Nuxt / Node.js
 web/node_modules/
@@ -44,9 +36,6 @@ yarn-error.log*
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-# Claude Code
-.claude/
 
 # Test coverage
 coverage/

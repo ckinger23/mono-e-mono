@@ -13,24 +13,6 @@
           Week {{ week }} Draft
         </h1>
       </div>
-      <div class="flex items-center space-x-3">
-        <span
-          :class="[
-            'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
-            draftStore.isConnected
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          ]"
-        >
-          <span
-            :class="[
-              'w-2 h-2 rounded-full mr-2',
-              draftStore.isConnected ? 'bg-green-500' : 'bg-red-500'
-            ]"
-          />
-          {{ draftStore.isConnected ? 'Connected' : 'Disconnected' }}
-        </span>
-      </div>
     </div>
 
     <!-- Error Alert -->
@@ -87,9 +69,6 @@ const draftStarted = ref(false)
 // Get week from season
 const week = computed(() => leagueStore.currentSeason?.current_week || 1)
 
-// WebSocket connection
-let ws: ReturnType<typeof useDraftWebSocket> | null = null
-
 const initializeDraft = async () => {
   loading.value = true
   error.value = ''
@@ -113,13 +92,14 @@ const initializeDraft = async () => {
 
     if (draft.status === 'in_progress') {
       draftStarted.value = true
-      connectWebSocket(draft.id)
+      // Load full draft state including players
+      await draftStore.loadDraftState(draft.id)
     } else if (draft.status === 'complete') {
-      draftStore.setComplete(0)
+      draftStarted.value = true
     }
   } catch (err: any) {
     // Draft doesn't exist yet, which is fine
-    if (err.status !== 404) {
+    if (err.statusCode !== 404) {
       error.value = err.data?.message || 'Failed to load draft'
     }
   } finally {
@@ -132,14 +112,13 @@ const startDraft = async () => {
   error.value = ''
 
   try {
-    const draft = await draftStore.startDraft(
+    await draftStore.startDraft(
       leagueId,
       leagueStore.currentSeason!.id,
       week.value
     )
 
     draftStarted.value = true
-    connectWebSocket(draft.id)
   } catch (err: any) {
     error.value = err.data?.message || 'Failed to start draft'
   } finally {
@@ -147,15 +126,15 @@ const startDraft = async () => {
   }
 }
 
-const connectWebSocket = (draftId: string) => {
-  ws = useDraftWebSocket(draftId)
-  ws.connectDraft()
-}
+const handlePick = async (playerId: string, playerName: string, position: string) => {
+  if (!draftStore.draftState?.id) return
 
-const handlePick = (playerId: string, position: string) => {
-  if (ws) {
-    draftStore.clearError()
-    ws.makePick(playerId, position)
+  draftStore.clearError()
+
+  try {
+    await draftStore.makePick(draftStore.draftState.id, playerId, playerName, position)
+  } catch (err: any) {
+    error.value = err.data?.message || 'Failed to make pick'
   }
 }
 
@@ -166,9 +145,6 @@ const handleComplete = () => {
 onMounted(initializeDraft)
 
 onUnmounted(() => {
-  if (ws) {
-    ws.disconnect()
-  }
   draftStore.reset()
 })
 

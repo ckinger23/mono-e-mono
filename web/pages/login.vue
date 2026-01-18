@@ -61,18 +61,22 @@
           </div>
 
           <div class="mt-6 grid grid-cols-2 gap-3">
-            <a
-              :href="`${config.public.apiBase}/api/auth/google`"
+            <button
+              type="button"
+              @click="handleGoogleSignIn"
+              :disabled="loading"
               class="btn-secondary w-full"
             >
               Google
-            </a>
-            <a
-              :href="`${config.public.apiBase}/api/auth/github`"
+            </button>
+            <button
+              type="button"
+              @click="handleGithubSignIn"
+              :disabled="loading"
               class="btn-secondary w-full"
             >
               GitHub
-            </a>
+            </button>
           </div>
         </div>
 
@@ -90,26 +94,62 @@
 <script setup lang="ts">
 definePageMeta({
   layout: 'auth',
-  middleware: 'auth',
 })
 
-const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const user = useSupabaseUser()
 
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
+// Redirect if already logged in
+watch(user, (newUser) => {
+  if (newUser) {
+    navigateTo('/dashboard')
+  }
+}, { immediate: true })
+
 const handleSubmit = async () => {
   loading.value = true
   error.value = ''
 
   try {
-    await authStore.login(email.value, password.value)
-    navigateTo('/dashboard')
+    const success = await authStore.login(email.value, password.value)
+    if (success) {
+      navigateTo('/dashboard')
+    } else {
+      error.value = authStore.error || 'Login failed. Please try again.'
+    }
   } catch (err: any) {
-    error.value = err.data?.message || 'Login failed. Please try again.'
+    error.value = err.message || 'Login failed. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleGoogleSignIn = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    await authStore.signInWithGoogle()
+  } catch (err: any) {
+    error.value = err.message || 'Google sign in failed.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleGithubSignIn = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    await authStore.signInWithGithub()
+  } catch (err: any) {
+    error.value = err.message || 'GitHub sign in failed.'
   } finally {
     loading.value = false
   }

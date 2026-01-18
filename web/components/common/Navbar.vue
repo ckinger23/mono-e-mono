@@ -35,7 +35,7 @@
         <div class="flex items-center">
           <template v-if="authStore.isAuthenticated">
             <div class="flex items-center space-x-4">
-              <span class="text-sm text-gray-600">{{ authStore.user?.display_name }}</span>
+              <span class="text-sm text-gray-600">{{ authStore.currentUser?.display_name }}</span>
               <button
                 @click="handleLogout"
                 class="text-gray-600 hover:text-gray-900 text-sm font-medium"

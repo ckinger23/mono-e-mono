@@ -12,7 +12,9 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
+    "@nuxtjs/supabase": "^2.0.3",
     "@pinia/nuxt": "^0.5.1",
+    "@supabase/supabase-js": "^2.90.1",
     "nuxt": "^3.10.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.0",

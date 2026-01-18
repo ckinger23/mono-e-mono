@@ -1,19 +1,11 @@
 export default defineNuxtRouteMiddleware((to) => {
-  const authStore = useAuthStore()
+  const user = useSupabaseUser()
 
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/register', '/auth/callback']
+  // The @nuxtjs/supabase module handles most redirects automatically
+  // This middleware adds additional protection for authenticated routes
 
-  if (publicRoutes.includes(to.path)) {
-    // Redirect to dashboard if already authenticated
-    if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
-      return navigateTo('/dashboard')
-    }
-    return
-  }
-
-  // Require authentication for all other routes
-  if (!authStore.isAuthenticated) {
+  // If there's no user and trying to access a protected route
+  if (!user.value) {
     return navigateTo('/login')
   }
 })

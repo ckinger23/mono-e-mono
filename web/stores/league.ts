@@ -1,191 +1,202 @@
 import { defineStore } from 'pinia'
-import type { League, LeagueMember, Season, Standing, WeeklyResult } from '~/types'
 
-interface LeagueState {
-  leagues: League[]
-  currentLeague: League | null
-  members: LeagueMember[]
-  seasons: Season[]
-  currentSeason: Season | null
-  standings: Standing[]
-  weeklyResults: WeeklyResult[]
-  loading: boolean
-  error: string | null
+interface League {
+  id: string
+  name: string
+  invite_code: string
+  commissioner_id: string
+  max_members: number
+  scoring_type: string
+  created_at: string
+  is_commissioner?: boolean
+  my_team_name?: string
+  member_count?: number
 }
 
-export const useLeagueStore = defineStore('league', {
-  state: (): LeagueState => ({
-    leagues: [],
-    currentLeague: null,
-    members: [],
-    seasons: [],
-    currentSeason: null,
-    standings: [],
-    weeklyResults: [],
-    loading: false,
-    error: null,
-  }),
+interface LeagueMember {
+  id: string
+  user_id: string
+  team_name: string
+  joined_at: string
+  profile?: {
+    display_name: string
+    avatar_url: string | null
+  }
+}
 
-  actions: {
-    async fetchLeagues() {
-      this.loading = true
-      this.error = null
+interface Season {
+  id: string
+  league_id: string
+  year: number
+  current_week: number
+  status: string
+  created_at: string
+}
 
-      try {
-        const { $api } = useNuxtApp()
-        this.leagues = await $api<League[]>('/api/leagues')
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to fetch leagues'
-      } finally {
-        this.loading = false
-      }
-    },
+interface Standing {
+  id: string
+  member_id: string
+  weekly_wins: number
+  total_points: number
+  best_week: number
+  weeks_played: number
+  current_rank: number
+  member?: LeagueMember
+}
 
-    async fetchLeague(leagueId: string) {
-      this.loading = true
-      this.error = null
+export const useLeagueStore = defineStore('league', () => {
+  const leagues = ref<League[]>([])
+  const currentLeague = ref<League | null>(null)
+  const members = ref<LeagueMember[]>([])
+  const seasons = ref<Season[]>([])
+  const currentSeason = ref<Season | null>(null)
+  const standings = ref<Standing[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-      try {
-        const { $api } = useNuxtApp()
-        this.currentLeague = await $api<League>(`/api/leagues/${leagueId}`)
-        return this.currentLeague
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to fetch league'
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
+  async function fetchLeagues() {
+    loading.value = true
+    error.value = null
 
-    async createLeague(name: string, teamName: string, maxMembers = 10, scoringType = 'ppr') {
-      this.loading = true
-      this.error = null
+    try {
+      leagues.value = await $fetch<League[]>('/api/leagues')
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to fetch leagues'
+    } finally {
+      loading.value = false
+    }
+  }
 
-      try {
-        const { $api } = useNuxtApp()
-        const league = await $api<League>('/api/leagues', {
-          method: 'POST',
-          body: { name, team_name: teamName, max_members: maxMembers, scoring_type: scoringType },
-        })
+  async function fetchLeague(leagueId: string) {
+    loading.value = true
+    error.value = null
 
-        this.leagues.unshift(league)
-        return league
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to create league'
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
+    try {
+      currentLeague.value = await $fetch<League>(`/api/leagues/${leagueId}`)
+      return currentLeague.value
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to fetch league'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
 
-    async joinLeague(inviteCode: string, teamName: string) {
-      this.loading = true
-      this.error = null
+  async function createLeague(name: string, teamName: string, maxMembers = 10, scoringType = 'ppr') {
+    loading.value = true
+    error.value = null
 
-      try {
-        const { $api } = useNuxtApp()
-        const member = await $api<LeagueMember>('/api/leagues/join', {
-          method: 'POST',
-          body: { invite_code: inviteCode, team_name: teamName },
-        })
+    try {
+      const league = await $fetch<League>('/api/leagues', {
+        method: 'POST',
+        body: { name, team_name: teamName, max_members: maxMembers, scoring_type: scoringType },
+      })
 
-        // Refresh leagues list
-        await this.fetchLeagues()
+      leagues.value.unshift(league)
+      return league
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to create league'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
 
-        return member
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to join league'
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
+  async function joinLeague(inviteCode: string, teamName: string) {
+    loading.value = true
+    error.value = null
 
-    async fetchMembers(leagueId: string) {
-      try {
-        const { $api } = useNuxtApp()
-        this.members = await $api<LeagueMember[]>(`/api/leagues/${leagueId}/members`)
-        return this.members
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to fetch members'
-        throw err
-      }
-    },
+    try {
+      const result = await $fetch<{ league: League; membership: LeagueMember }>('/api/leagues/join', {
+        method: 'POST',
+        body: { invite_code: inviteCode, team_name: teamName },
+      })
 
-    async fetchSeasons(leagueId: string) {
-      try {
-        const { $api } = useNuxtApp()
-        this.seasons = await $api<Season[]>(`/api/leagues/${leagueId}/seasons`)
-        return this.seasons
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to fetch seasons'
-        throw err
-      }
-    },
+      // Refresh leagues list
+      await fetchLeagues()
 
-    async fetchActiveSeason(leagueId: string) {
-      try {
-        const { $api } = useNuxtApp()
-        this.currentSeason = await $api<Season>(`/api/leagues/${leagueId}/seasons/active`)
-        return this.currentSeason
-      } catch {
-        this.currentSeason = null
-        return null
-      }
-    },
+      return result
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to join league'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
 
-    async createSeason(leagueId: string, year?: number) {
-      this.loading = true
+  async function fetchMembers(leagueId: string) {
+    try {
+      members.value = await $fetch<LeagueMember[]>(`/api/leagues/${leagueId}/members`)
+      return members.value
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to fetch members'
+      throw err
+    }
+  }
 
-      try {
-        const { $api } = useNuxtApp()
-        const season = await $api<Season>(`/api/leagues/${leagueId}/seasons`, {
-          method: 'POST',
-          body: { year: year || new Date().getFullYear() },
-        })
+  async function fetchSeasons(leagueId: string) {
+    try {
+      seasons.value = await $fetch<Season[]>(`/api/leagues/${leagueId}/seasons`)
+      return seasons.value
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to fetch seasons'
+      throw err
+    }
+  }
 
-        this.seasons.unshift(season)
-        this.currentSeason = season
-        return season
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to create season'
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
+  async function fetchActiveSeason(leagueId: string) {
+    try {
+      currentSeason.value = await $fetch<Season>(`/api/leagues/${leagueId}/seasons/active`)
+      return currentSeason.value
+    } catch {
+      currentSeason.value = null
+      return null
+    }
+  }
 
-    async fetchStandings(leagueId: string, seasonId: string) {
-      try {
-        const { $api } = useNuxtApp()
-        this.standings = await $api<Standing[]>(`/api/leagues/${leagueId}/seasons/${seasonId}/standings`)
-        return this.standings
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to fetch standings'
-        throw err
-      }
-    },
+  async function fetchStandings(leagueId: string, seasonId: string) {
+    try {
+      standings.value = await $fetch<Standing[]>(`/api/leagues/${leagueId}/seasons/${seasonId}/standings`)
+      return standings.value
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to fetch standings'
+      throw err
+    }
+  }
 
-    async fetchWeeklyResults(leagueId: string, seasonId: string, week: number) {
-      try {
-        const { $api } = useNuxtApp()
-        this.weeklyResults = await $api<WeeklyResult[]>(
-          `/api/leagues/${leagueId}/seasons/${seasonId}/week/${week}/results`
-        )
-        return this.weeklyResults
-      } catch (err: any) {
-        this.error = err.data?.message || 'Failed to fetch weekly results'
-        throw err
-      }
-    },
+  function clearCurrentLeague() {
+    currentLeague.value = null
+    members.value = []
+    seasons.value = []
+    currentSeason.value = null
+    standings.value = []
+  }
 
-    clearCurrentLeague() {
-      this.currentLeague = null
-      this.members = []
-      this.seasons = []
-      this.currentSeason = null
-      this.standings = []
-      this.weeklyResults = []
-    },
-  },
+  function clearError() {
+    error.value = null
+  }
+
+  return {
+    // State
+    leagues,
+    currentLeague,
+    members,
+    seasons,
+    currentSeason,
+    standings,
+    loading,
+    error,
+
+    // Actions
+    fetchLeagues,
+    fetchLeague,
+    createLeague,
+    joinLeague,
+    fetchMembers,
+    fetchSeasons,
+    fetchActiveSeason,
+    fetchStandings,
+    clearCurrentLeague,
+    clearError,
+  }
 })
